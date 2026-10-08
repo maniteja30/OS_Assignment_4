@@ -1,4 +1,6 @@
 *.pdf
 memory_simulator
 memory_simulator_part2
+memory_simulator_part3_single
+memory_simulator_part3_two
 traces/

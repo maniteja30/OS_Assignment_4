@@ -1,0 +1,106 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+
+#include "trace.h"
+#include "two_level_page_table.h"
+#include "tlb.h"
+#include "config.h"
+
+using namespace std;
+
+int main() {
+
+    ifstream file("traces/small/gcc_small.txt");
+
+    if (!file.is_open()) {
+        cerr << "Error: could not open the trace file" << endl;
+        return 1;
+    }
+
+    TwoLevelPageTable pageTable;
+    TLB tlb;
+
+    string line;
+
+    // Skip header
+    getline(file, line);
+
+    uint64_t totalAccesses = 0;
+    uint64_t totalCycles = 0;
+
+    while (getline(file, line)) {
+
+        MemoryAccess access;
+
+        if (!parseTraceLine(line, access)) {
+            cerr << "Error parsing line: " << line << endl;
+            continue;
+        }
+
+        uint32_t virtualPage =
+            access.address / PAGE_SIZE;
+
+        uint32_t frame;
+
+        // First check the TLB.
+        if (tlb.lookup(virtualPage, frame)) {
+
+            // TLB hit:
+            // TLB lookup = 1 cycle
+            // Actual memory access = 200 cycles
+            totalCycles += TLB_ACCESS_CYCLES
+                         + MEMORY_ACCESS_CYCLES;
+
+        }
+        else {
+
+            // TLB miss.
+            //
+            // Walk the two-level page table.
+            frame = pageTable.getFrame(virtualPage);
+
+            // Add the mapping to the TLB.
+            tlb.insert(virtualPage, frame);
+
+            // TLB lookup = 1 cycle
+            // Level-1 page table = 200 cycles
+            // Level-2 page table = 200 cycles
+            // Actual memory access = 200 cycles
+            totalCycles += TLB_ACCESS_CYCLES
+                         + MEMORY_ACCESS_CYCLES
+                         + MEMORY_ACCESS_CYCLES
+                         + MEMORY_ACCESS_CYCLES;
+        }
+
+        totalAccesses++;
+    }
+
+    file.close();
+
+    cout << "===== Part III-B: Two-Level Page Table + TLB =====\n\n";
+
+    cout << "Total Accesses: "
+         << totalAccesses << endl;
+
+    cout << "Frames used: "
+         << pageTable.getUsedFrameCount() << endl;
+
+    cout << "TLB Accesses: "
+         << tlb.getAccesses() << endl;
+
+    cout << "TLB Hits: "
+         << tlb.getHits() << endl;
+
+    cout << "TLB Misses: "
+         << tlb.getMisses() << endl;
+
+    cout << "TLB Hit Rate: "
+         << tlb.getHitRate()
+         << "%" << endl;
+
+    cout << "Total Cycles: "
+         << totalCycles << endl;
+
+    return 0;
+}
