@@ -9,9 +9,13 @@
 
 using namespace std;
 
-int main() {
+int main(int argc, char* argv[]) {
 
-    ifstream file("traces/small/gcc_small.txt");
+    string tracePath = (argc > 1)
+        ? argv[1]
+        : "traces/small/gcc_small.txt";
+
+    ifstream file(tracePath);
 
     if (!file.is_open()) {
         cerr << "Error: could not open the trace file" << endl;
