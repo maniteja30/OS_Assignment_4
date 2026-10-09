@@ -1,42 +1,42 @@
+
 #include "trace.h"
 
-#include <sstream>
+#include <charconv>
+#include <string>
 
 bool parseTraceLine(const std::string& line, MemoryAccess& access) {
-    std::stringstream ss(line);
-
-    std::string addressString;
-    std::string typeString;
-    std::string operationString;
-
-    if (!std::getline(ss, addressString, ',')) {
+    const size_t comma1 = line.find(',');
+    if (comma1 == std::string::npos) {
         return false;
     }
 
-    if (!std::getline(ss, typeString, ',')) {
+    const size_t comma2 = line.find(',', comma1 + 1);
+    if (comma2 == std::string::npos) {
         return false;
     }
 
-    if (!std::getline(ss, operationString, ',')) {
+    if (line.find(',', comma2 + 1) != std::string::npos) {
         return false;
     }
 
-    try {
-        uint64_t address = std::stoull(addressString);
+    uint64_t address = 0;
 
-        // The assignment asks us to use only the lower 32 bits.
-        access.address = static_cast<uint32_t>(address);
-    }
-    catch (...) {
+    const char* begin = line.data();
+    const char* addressEnd = begin + comma1;
+
+    auto result = std::from_chars(begin, addressEnd, address);
+    if (result.ec != std::errc{} || result.ptr != addressEnd) {
         return false;
     }
 
-    if (typeString.size() != 1 || operationString.size() != 1) {
+    if (comma2 != comma1 + 2 || line.size() != comma2 + 2) {
         return false;
     }
 
-    access.type = typeString[0];
-    access.operation = operationString[0];
+    access.address = static_cast<uint32_t>(address);
+    access.type = line[comma1 + 1];
+    access.operation = line[comma2 + 1];
 
-    return true;
+    return (access.type == 'I' || access.type == 'D') &&
+           (access.operation == 'R' || access.operation == 'W');
 }

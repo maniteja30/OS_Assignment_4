@@ -7,8 +7,10 @@
 #include "page_table.h"
 #include "config.h"
 using namespace std;
-int main(){
-    ifstream file("traces/small/gcc_small.txt");
+int main(int argc, char* argv[]){
+    string tracePath = (argc > 1) ? argv[1] : "traces/small/gcc_small.txt";
+
+    ifstream file(tracePath);
     if(!file.is_open()){
         cerr << "Error: couldnot open the trace file" << endl;
         return 1;
